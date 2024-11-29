@@ -1,24 +1,20 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Login from './pages/Login'; // Placeholder for the Login page
+import TreasurerPage from './pages/TreasurerPage'; // Placeholder for Treasurer
+import SecretaryPage from './pages/SecretaryPage'; // Placeholder for Secretary
+import AdminPage from './pages/AdminPage'; // Placeholder for Admin
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/treasurer" element={<TreasurerPage />} />
+        <Route path="/secretary" element={<SecretaryPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+      </Routes>
+    </Router>
   );
 }
 
