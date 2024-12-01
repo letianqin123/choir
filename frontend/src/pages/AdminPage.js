@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import { useNavigate } from 'react-router-dom';
 const AdminPage = () => {
     const [members, setMembers] = useState([
     ]);
@@ -30,6 +30,11 @@ const AdminPage = () => {
     const deleteMember = (memberID) => {
         setMembers(members.filter((member) => member.ID !== memberID));
     };
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        navigate('/');
+    };
 
     return (
         <div style={{ backgroundColor: '#007E94', minHeight: '100vh' }}>
@@ -58,7 +63,7 @@ const AdminPage = () => {
                                 borderRadius: '25px',
                                 padding: '8px 20px'
                             }}
-                            onClick={() => window.location.href = '/'}
+                            onClick={handleLogout}
                         >
                             Log Out
                             <i className="fas fa-sign-out-alt"></i>
