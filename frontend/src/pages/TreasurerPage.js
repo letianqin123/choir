@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const TreasurerPage = () => {
     const [currentView, setCurrentView] = useState('membership');
@@ -8,14 +8,13 @@ const TreasurerPage = () => {
     const [donationRecords, setDonationRecords] = useState([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formData, setFormData] = useState(null);
-
     const navigate = useNavigate();
 
     const handleLogout = () => {
         navigate('/');
     };
 
-
+    // Styles object
     const styles = {
         container: {
             backgroundColor: '#007E94',
@@ -147,12 +146,12 @@ const TreasurerPage = () => {
                 ...(active ? styles.activeTab : {})
             }}
         >
-      <span
-          style={{
-              ...styles.circle,
-              ...(active ? styles.activeCircle : {})
-          }}
-      ></span>
+            <span
+                style={{
+                    ...styles.circle,
+                    ...(active ? styles.activeCircle : {})
+                }}
+            ></span>
             {title}
         </div>
     );
@@ -178,7 +177,9 @@ const TreasurerPage = () => {
                             {columns.map(col => (
                                 <td key={col}>
                                     {col === 'PaymentStatus' ? (
-                                        <span style={styles.paidBadge}>{record[col]}</span>
+                                        <span className={`badge ${record[col] ? 'bg-success' : 'bg-danger'}`}>
+                {record[col] ? 'Paid' : 'Unpaid'}
+            </span>
                                     ) : (
                                         record[col]
                                     )}
@@ -228,7 +229,6 @@ const TreasurerPage = () => {
                     onClick={handleLogout}
                 >
                     Log Out
-                    <i className="fas fa-sign-out-alt"></i>
                 </button>
             </div>
 
@@ -266,7 +266,7 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
                 PaymentDate: '',
                 PaymentAmount: '',
                 PaymentMethod: '',
-                PaymentStatus: ''
+                PaymentStatus: false
             }
             : {
                 AmountDonated: '',
@@ -276,13 +276,56 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
     );
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormState((prev) => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        const newValue = type === 'checkbox' ? checked : value;
+        setFormState((prev) => ({ ...prev, [name]: newValue }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit(formState);
+    };
+
+    const renderInput = (key) => {
+        if (key === 'PaymentStatus') {
+            return (
+                <div className="form-check">
+                    <input
+                        type="checkbox"
+                        className="form-check-input"
+                        name={key}
+                        checked={formState[key]}
+                        onChange={handleChange}
+                        id="paymentStatus"
+                    />
+                    <label className="form-check-label" htmlFor="paymentStatus">
+                        Paid
+                    </label>
+                </div>
+            );
+        }
+
+        if (key === 'PaymentDate' || key === 'Date') {
+            return (
+                <input
+                    type="date"
+                    className="form-control"
+                    name={key}
+                    value={formState[key]}
+                    onChange={handleChange}
+                />
+            );
+        }
+
+        return (
+            <input
+                type="text"
+                className="form-control"
+                name={key}
+                value={formState[key]}
+                onChange={handleChange}
+            />
+        );
     };
 
     return (
@@ -295,13 +338,7 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
                 {Object.keys(formState).filter(key => key !== 'ID').map((key) => (
                     <div className="mb-3" key={key}>
                         <label className="form-label">{key}:</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            name={key}
-                            value={formState[key]}
-                            onChange={handleChange}
-                        />
+                        {renderInput(key)}
                     </div>
                 ))}
                 <div className="d-flex gap-2 justify-content-end">
