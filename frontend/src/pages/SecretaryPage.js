@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Table from '../components/Table';
-import BackToLoginButton from '../components/BackToLoginButton';
+import React, { useState, useEffect } from 'react';
+import axios from '../api/axiosInstance';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 
 const SecretaryPage = () => {
   const [filters, setFilters] = useState({ date: '', voicePart: '' });
@@ -10,120 +9,7 @@ const SecretaryPage = () => {
   const [isCheckInMode, setIsCheckInMode] = useState(false);
   const [checkInData, setCheckInData] = useState([]);
   const [availableDates, setAvailableDates] = useState([]);
-
-  const FUTURE_WEEKS = 4; // Configurable number of future weeks
-
-  // Mock member data for demonstration
-  const MOCK_MEMBERS = useMemo(
-      () => [
-        { Name: 'John Doe', VoicePart: 'Tenor' },
-        { Name: 'Jane Smith', VoicePart: 'Soprano' },
-        { Name: 'Michael Brown', VoicePart: 'Tenor' },
-      ],
-      []
-  );
-
-  const MOCK_ATTENDANCE_DATA = useMemo(
-      () => [
-        {
-          Date: '2024-11-07',
-          'Voice Part': 'Tenor',
-          Members: [{ Name: 'John Doe', Attendance: 'Present', Details: '' }],
-        },
-        {
-          Date: '2024-11-14',
-          'Voice Part': 'Soprano',
-          Members: [{ Name: 'Jane Smith', Attendance: 'Absent', Details: 'Sick' }],
-        },
-      ],
-      []
-  );
-
-  useEffect(() => {
-    // Generate available dates dynamically
-    const getAvailableDates = () => {
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - today.getDay() + 4); // Start with this week's Thursday
-      const dates = new Set();
-
-      // Include past dates from attendance records
-      MOCK_ATTENDANCE_DATA.forEach((record) => dates.add(record.Date));
-
-      // Include future dates for the next N weeks
-      for (let i = 0; i < FUTURE_WEEKS; i++) {
-        const futureThursday = new Date(startDate);
-        futureThursday.setDate(startDate.getDate() + i * 7);
-        dates.add(futureThursday.toISOString().split('T')[0]);
-      }
-
-      // Convert to sorted array
-      setAvailableDates(Array.from(dates).sort());
-    };
-
-    getAvailableDates();
-  }, [MOCK_ATTENDANCE_DATA]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSearch = () => {
-    if (!filters.date || !filters.voicePart) {
-      alert('Please select both a date and a voice part to search.');
-      return;
-    }
-
-    // Filter attendance records based on selected date and voice part
-    const filteredData = MOCK_ATTENDANCE_DATA.filter(
-        (record) =>
-            record.Date === filters.date && record['Voice Part'] === filters.voicePart
-    );
-    setAttendanceRecords(filteredData);
-    setIsCheckInMode(false); // Exit check-in mode if previously active
-  };
-
-  const startNewCheckIn = () => {
-    if (!filters.date || !filters.voicePart) {
-      alert('Please select both a date and a voice part before starting check-in.');
-      return;
-    }
-
-    // Pull members for the selected voice part
-    const members = MOCK_MEMBERS.filter(
-        (member) => member.VoicePart === filters.voicePart
-    ).map((member) => ({
-      Name: member.Name,
-      Attendance: '',
-      Details: '',
-    }));
-
-    setCheckInData(members);
-    setIsCheckInMode(true); // Enable check-in mode
-  };
-
-  const handleCheckInChange = (index, field, value) => {
-    setCheckInData((prev) =>
-        prev.map((row, idx) =>
-            idx === index ? { ...row, [field]: value } : row
-        )
-    );
-  };
-
-  const submitCheckIn = () => {
-    const newRecord = {
-      Date: filters.date,
-      'Voice Part': filters.voicePart,
-      Members: checkInData,
-    };
-
-    // Save to the database (simulated here with state)
-    setAttendanceRecords((prev) => [...prev, newRecord]);
-    setIsCheckInMode(false);
-    setCheckInData([]);
-    alert('Attendance has been recorded!');
-  };
+  const [error, setError] = useState(null);
 
   const navigate = useNavigate();
 
@@ -131,196 +17,304 @@ const SecretaryPage = () => {
     navigate('/');
   };
 
+  const formatDate = (dateString) => {
+    return dateString.split('T')[0]; // Format the date as YYYY-MM-DD
+  };
+
+  const generateFutureDates = (weeks = 4) => {
+    const today = new Date();
+    const futureDates = [];
+    for (let i = 1; i <= weeks; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i * 7); // Add one week at a time
+      futureDates.push(formatDate(futureDate.toISOString()));
+    }
+    return futureDates;
+  };
+
+  useEffect(() => {
+    const fetchAttendanceRecords = async () => {
+      try {
+        setError(null);
+        const response = await axios.get('/api/attendance');
+        const rawRecords = response.data.map(record => ({
+          ...record,
+          check_in_date: formatDate(record.check_in_date),
+        }));
+
+        const recordsWithRate = await Promise.all(
+          rawRecords.map(async (record) => {
+            const memberResponse = await axios.get(`/api/members/${record.name}/attendance-rate`);
+            return {
+              ...record,
+              attendance_rate: memberResponse.data.attendance_rate,
+            };
+          })
+        );
+
+        setAttendanceRecords(recordsWithRate);
+
+        const uniqueDates = [...new Set(rawRecords.map(record => record.check_in_date))];
+        const futureDates = generateFutureDates();
+        setAvailableDates([...uniqueDates, ...futureDates].sort());
+      } catch (err) {
+        console.error('Error fetching attendance records:', err);
+        setError('Failed to fetch attendance records. Please try again later.');
+      }
+    };
+
+    fetchAttendanceRecords();
+  }, []);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearch = async () => {
+    if (!filters.date || !filters.voicePart) {
+      alert('Please select both a date and a voice part to search.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const endpoint = `/api/attendance/voice-part/${encodeURIComponent(filters.voicePart)}/date/${encodeURIComponent(filters.date)}`;
+      const response = await axios.get(endpoint);
+
+      const recordsWithRate = await Promise.all(
+        response.data.map(async (record) => {
+          const memberResponse = await axios.get(`/api/members/${record.name}/attendance-rate`);
+          return {
+            ...record,
+            attendance_rate: memberResponse.data.attendance_rate,
+            check_in_date: formatDate(record.check_in_date),
+          };
+        })
+      );
+
+      setAttendanceRecords(recordsWithRate);
+      setIsCheckInMode(false);
+    } catch (err) {
+      console.error('Error fetching attendance records:', err);
+      setError('No records found for the selected date and voice part.');
+    }
+  };
+
+  const startNewCheckIn = async () => {
+    if (!filters.date || !filters.voicePart) {
+      alert('Please select both a date and a voice part before starting check-in.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const memberResponse = await axios.get(`/api/members/voice-part/${filters.voicePart}`);
+      const members = memberResponse.data.map((member) => ({
+        name: member.name,
+        attendance: '',
+        absent_reason: '',
+      }));
+      setCheckInData(members);
+      setIsCheckInMode(true);
+    } catch (err) {
+      console.error('Error starting new check-in:', err);
+      setError('Failed to start new check-in. Please try again later.');
+    }
+  };
+
+  const handleCheckInChange = (index, field, value) => {
+    setCheckInData((prev) =>
+      prev.map((row, idx) =>
+        idx === index ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  const submitCheckIn = async () => {
+    if (!filters.date || !filters.voicePart) {
+      alert('Please select both a date and a voice part before submitting check-in.');
+      return;
+    }
+
+    try {
+      const attendanceRecordsToSubmit = checkInData.map((record) => ({
+        name: record.name,
+        attendance: record.attendance === 'Present',
+        absent_reason: record.attendance === 'Absent' ? record.absent_reason : null,
+      }));
+
+      const endpoint = `/api/attendance/voice-part/${encodeURIComponent(filters.voicePart)}/date/${encodeURIComponent(filters.date)}`;
+      await axios.post(endpoint, { attendance_records: attendanceRecordsToSubmit });
+
+      alert('Attendance has been recorded successfully!');
+      setIsCheckInMode(false);
+      handleSearch();
+    } catch (err) {
+      console.error('Error submitting attendance records:', err);
+      setError('Failed to submit attendance records. Please try again later.');
+    }
+  };
+
   return (
-      <div className="min-vh-100" style={{ backgroundColor: '#007E94' }}>
-        <div className="container py-4">
-          {/* New Check-in Button */}
-          {/*<div className="mb-4">*/}
-          {/*  <button*/}
-          {/*      className="btn btn-warning btn-lg rounded-pill px-4"*/}
-          {/*      onClick={startNewCheckIn}*/}
-          {/*  >*/}
-          {/*    New Check-in*/}
-          {/*  </button>*/}
-          {/*  <button*/}
-          {/*      className="btn btn-danger d-flex align-items-center gap-2"*/}
-          {/*      style={{*/}
-          {/*        borderRadius: '25px',*/}
-          {/*        padding: '8px 20px'*/}
-          {/*      }}*/}
-          {/*      onClick={handleLogout}*/}
-          {/*  >*/}
-          {/*    Log Out*/}
-          {/*    <i className="fas fa-sign-out-alt"></i>*/}
-          {/*  </button>*/}
-          {/*</div>*/}
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <button
-                className="btn btn-warning btn-lg rounded-pill px-4"
-                onClick={startNewCheckIn}
-            >
-              New Check-in
-            </button>
+    <div className="min-vh-100" style={{ backgroundColor: '#007E94' }}>
+      <div className="container py-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <button
+            className="btn btn-warning btn-lg rounded-pill px-4"
+            onClick={startNewCheckIn}
+          >
+            New Check-in
+          </button>
+          <button
+            className="btn btn-danger d-flex align-items-center gap-2"
+            style={{ borderRadius: '25px', padding: '8px 20px' }}
+            onClick={handleLogout}
+          >
+            Log Out
+          </button>
+        </div>
 
-            <button
-                className="btn btn-danger d-flex align-items-center gap-2"
-                style={{
-                  borderRadius: '25px',
-                  padding: '8px 20px'
-                }}
-                onClick={handleLogout}
-            >
-              Log Out
-              <i className="fas fa-sign-out-alt"></i>
-            </button>
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        <div className="card mb-4">
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-4">
+                <label className="form-label">Date:</label>
+                <select
+                  className="form-select"
+                  name="date"
+                  value={filters.date}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">Select Date</option>
+                  {availableDates.map((date) => (
+                    <option key={date} value={date}>
+                      {date}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-4">
+                <label className="form-label">Voice Part:</label>
+                <select
+                  className="form-select"
+                  name="voicePart"
+                  value={filters.voicePart}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">Select Voice Part</option>
+                  <option value="Soprano">Soprano</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Tenor">Tenor</option>
+                  <option value="Bass">Bass</option>
+                </select>
+              </div>
+              <div className="col-md-4 d-flex align-items-end">
+                <button className="btn btn-primary" onClick={handleSearch}>
+                  Search
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* Filters Section */}
-          <div className="card mb-4">
+        {attendanceRecords.length > 0 && (
+          <div className="card">
             <div className="card-body">
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="form-group mb-3">
-                    <label className="form-label">Date (Week):</label>
-                    <select
-                        className="form-select"
-                        name="date"
-                        value={filters.date}
-                        onChange={handleFilterChange}
-                    >
-                      <option value="">Select Week</option>
-                      {availableDates.map((date) => (
-                          <option key={date} value={date}>
-                            {date}
-                          </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Attendance</th>
+                    <th>Details</th>
+                    <th>Attendance Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendanceRecords.map((record, index) => (
+                    <tr key={`${record.name}-${record.check_in_date}`}>
+                      <td>{index + 1}</td>
+                      <td>{record.name}</td>
+                      <td>{record.check_in_date}</td>
+                      <td>{record.attendance ? 'Present' : 'Absent'}</td>
+                      <td>{record.absent_reason || '-'}</td>
+                      <td>{record.attendance_rate ? `${record.attendance_rate}%` : 'N/A'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-                <div className="col-md-4">
-                  <div className="form-group mb-3">
-                    <label className="form-label">Voice Part:</label>
-                    <select
-                        className="form-select"
-                        name="voicePart"
-                        value={filters.voicePart}
-                        onChange={handleFilterChange}
-                    >
-                      <option value="">Select Voice Part</option>
-                      <option value="Soprano">Soprano</option>
-                      <option value="Alto">Alto</option>
-                      <option value="Tenor">Tenor</option>
-                      <option value="Bass">Bass</option>
-                    </select>
-                  </div>
+        {isCheckInMode && (
+          <div
+            className="modal show d-block"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              overflowY: 'auto',
+              maxHeight: '90vh',
+            }}
+          >
+            <div className="modal-dialog modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">New Attendance Check-In</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setIsCheckInMode(false)}
+                  ></button>
                 </div>
-
-                <div className="col-md-4 d-flex align-items-end">
-                  <div className="form-group mb-3">
-                    <label className="form-label"></label>
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleSearch}
-                    >
-                      Search
-                    </button>
-                  </div>
+                <div className="modal-body">
+                  {checkInData.map((row, index) => (
+                    <div key={index} className="mb-3">
+                      <label>{row.name}</label>
+                      <select
+                        className="form-select"
+                        value={row.attendance}
+                        onChange={(e) =>
+                          handleCheckInChange(index, 'attendance', e.target.value)
+                        }
+                      >
+                        <option value="">Select Attendance</option>
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                      </select>
+                      <input
+                        type="text"
+                        className="form-control mt-2"
+                        placeholder="Absent Reason"
+                        value={row.absent_reason}
+                        onChange={(e) =>
+                          handleCheckInChange(index, 'absent_reason', e.target.value)
+                        }
+                        disabled={row.attendance !== 'Absent'}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={submitCheckIn}>
+                    Submit
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setIsCheckInMode(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Subject Report Section */}
-          {!isCheckInMode && attendanceRecords.length > 0 && (
-              <div className="card">
-                <div className="card-body">
-                  <h3 className="card-title mb-4">Subject Report</h3>
-                  <div className="table-responsive">
-                    <table className="table table-striped table-hover">
-                      <thead>
-                      <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Date</th>
-                        <th scope="col">Attendance</th>
-                        <th scope="col">Details</th>
-                        <th scope="col">Attendance Rate</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      {attendanceRecords.map((record, index) => (
-                          record.Members.map((member, memberIndex) => (
-                              <tr key={`${index}-${memberIndex}`}>
-                                <td>{memberIndex + 1}</td>
-                                <td>{member.Name}</td>
-                                <td>{record.Date}</td>
-                                <td>{member.Attendance}</td>
-                                <td>{member.Details}</td>
-                                <td>98%</td>
-                              </tr>
-                          ))
-                      ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-          )}
-
-          {/* Check-In Form */}
-          {isCheckInMode && (
-              <div className="card">
-                <div className="card-body">
-                  <h3 className="card-title mb-4">New Attendance Check-In</h3>
-                  {checkInData.map((row, index) => (
-                      <div key={index} className="row mb-3">
-                        <div className="col-md-4">
-                          <div className="form-group">
-                            <label className="form-label">{row.Name} - Attendance:</label>
-                            <select
-                                className="form-select"
-                                value={row.Attendance}
-                                onChange={(e) => handleCheckInChange(index, 'Attendance', e.target.value)}
-                            >
-                              <option value="">Select</option>
-                              <option value="Present">Present</option>
-                              <option value="Absent">Absent</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="col-md-8">
-                          <div className="form-group">
-                            <label className="form-label">Details:</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={row.Details}
-                                onChange={(e) => handleCheckInChange(index, 'Details', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                  ))}
-                  <div className="mt-4">
-                    <button
-                        className="btn btn-success me-2"
-                        onClick={submitCheckIn}
-                    >
-                      Submit
-                    </button>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => setIsCheckInMode(false)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-          )}
-        </div>
+        )}
       </div>
+    </div>
   );
 };
 

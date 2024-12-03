@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
+// src/components/TreasurerPage.js
+import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
+import axios from '../api/axiosInstance'; // Adjust the path based on your project structure
 
 const TreasurerPage = () => {
     const [currentView, setCurrentView] = useState('membership');
-    const [membershipRecords, setMembershipRecords] = useState([]);
-    const [donationRecords, setDonationRecords] = useState([]);
+    const [records, setRecords] = useState([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formData, setFormData] = useState(null);
+    const [error, setError] = useState(null); // State for error messages
     const navigate = useNavigate();
 
     const handleLogout = () => {
         navigate('/');
     };
 
-    // Styles object
     const styles = {
         container: {
             backgroundColor: '#007E94',
             minHeight: '100vh',
-            padding: '2rem'
+            padding: '2rem',
         },
         tabContainer: {
             display: 'flex',
             gap: '2rem',
-            marginBottom: '2rem'
+            marginBottom: '2rem',
         },
         tab: {
             color: 'white',
@@ -33,20 +34,20 @@ const TreasurerPage = () => {
             borderRadius: '4px',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.5rem',
         },
         activeTab: {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
         },
         circle: {
             width: '20px',
             height: '20px',
             border: '2px solid white',
             borderRadius: '50%',
-            display: 'inline-block'
+            display: 'inline-block',
         },
         activeCircle: {
-            backgroundColor: 'white'
+            backgroundColor: 'white',
         },
         newButton: {
             backgroundColor: '#F7B84B',
@@ -54,22 +55,22 @@ const TreasurerPage = () => {
             borderRadius: '20px',
             padding: '0.5rem 2rem',
             marginBottom: '2rem',
-            cursor: 'pointer'
+            cursor: 'pointer',
         },
         table: {
             backgroundColor: 'white',
             borderRadius: '10px',
-            overflow: 'hidden'
+            overflow: 'hidden',
         },
         tableHeader: {
-            backgroundColor: '#F8F9FA'
+            backgroundColor: '#F8F9FA',
         },
         paidBadge: {
             backgroundColor: '#E8F5E9',
             color: '#4CAF50',
             padding: '0.25rem 0.5rem',
             borderRadius: '12px',
-            fontSize: '0.875rem'
+            fontSize: '0.875rem',
         },
         formOverlay: {
             position: 'fixed',
@@ -81,60 +82,134 @@ const TreasurerPage = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 1000
+            zIndex: 1000,
         },
         formContainer: {
             backgroundColor: 'white',
             padding: '2rem',
             borderRadius: '10px',
             width: '100%',
-            maxWidth: '500px'
-        }
+            maxWidth: '500px',
+        },
     };
 
+    // Fetch records from backend
+    useEffect(() => {
+        const fetchRecords = async () => {
+            try {
+                setError(null); // Reset error state
+                const endpoint = currentView === 'membership' ? '/api/membership' : '/api/donations';
+                console.log(`Fetching data from: ${endpoint}`);
+                const response = await axios.get(endpoint);
+                console.log('Response data:', response.data);
+                if (Array.isArray(response.data)) {
+                    setRecords(response.data);
+                } else {
+                    setRecords([]); // Handle unexpected data format
+                    setError('Unexpected response format from the server.');
+                }
+            } catch (error) {
+                console.error('Error fetching records:', error);
+                setError('Failed to fetch records. Please try again later.');
+            }
+        };
+        fetchRecords();
+    }, [currentView]);
+
+    // Open form for add/edit
     const openForm = (record = null) => {
         setFormData(record);
         setIsFormOpen(true);
     };
 
-    const handleFormSubmit = (newRecord) => {
-        if (currentView === 'membership') {
-            if (formData) {
-                setMembershipRecords((prev) =>
-                    prev.map((record) =>
-                        record.ID === formData.ID ? { ...record, ...newRecord } : record
-                    )
-                );
+// Submit form data
+const handleFormSubmit = async (newRecord) => {
+    try {
+        setError(null); // Reset error state
+        let endpoint;
+        let method;
+
+        if (formData) {
+            // Editing an existing record
+            if (currentView === 'membership') {
+                endpoint = `/api/membership/${encodeURIComponent(formData.name)}`;
             } else {
-                setMembershipRecords((prev) => [
-                    ...prev,
-                    { ...newRecord, ID: (prev.length + 1).toString().padStart(2, '0') },
-                ]);
+                endpoint = `/api/donations/${encodeURIComponent(formData.donor_name)}/${encodeURIComponent(formData.donation)}`;
             }
+            method = 'put';
         } else {
-            if (formData) {
-                setDonationRecords((prev) =>
-                    prev.map((record) =>
-                        record.ID === formData.ID ? { ...record, ...newRecord } : record
-                    )
-                );
-            } else {
-                setDonationRecords((prev) => [
-                    ...prev,
-                    { ...newRecord, ID: (prev.length + 1).toString().padStart(2, '0') },
-                ]);
-            }
+            // Creating a new record
+            endpoint = `/api/${currentView}`;
+            method = 'post';
         }
 
+        console.log(`Sending ${method.toUpperCase()} request to: ${endpoint}`, newRecord);
+
+        const response = await axios({
+            method: method,
+            url: endpoint,
+            data: newRecord,
+        });
+
+        // Refresh data after submission
+        const getEndpoint = `/api/${currentView}`;
+        const getResponse = await axios.get(getEndpoint);
+        console.log('Updated records:', getResponse.data);
+        if (Array.isArray(getResponse.data)) {
+            setRecords(getResponse.data);
+        } else {
+            setRecords([]);
+            setError('Unexpected response format after saving.');
+        }
         setIsFormOpen(false);
         setFormData(null);
-    };
-
-    const deleteRecord = (id) => {
-        if (currentView === 'membership') {
-            setMembershipRecords((prev) => prev.filter((record) => record.ID !== id));
+    } catch (error) {
+        console.error('Error saving record:', error);
+        if (error.response) {
+            if (error.response.data) {
+                if (error.response.data.errors) {
+                    // Handle validation errors
+                    const backendErrors = error.response.data.errors.map(err => err.msg).join(', ');
+                    setError(`Validation Error: ${backendErrors}`);
+                } else if (error.response.data.message) {
+                    // Handle other backend errors
+                    setError(error.response.data.message);
+                } else {
+                    setError('An error occurred while saving the record.');
+                }
+            } else {
+                setError('An error occurred while saving the record.');
+            }
         } else {
-            setDonationRecords((prev) => prev.filter((record) => record.ID !== id));
+            setError('Network Error: Unable to reach the server.');
+        }
+    }
+};
+
+    // Delete a record
+    const deleteRecord = async (record) => {
+        try {
+            setError(null); // Reset error state
+            let endpoint;
+            if (currentView === 'membership') {
+                endpoint = `/api/membership/${encodeURIComponent(record.name)}`;
+            } else {
+                endpoint = `/api/donations/${encodeURIComponent(record.donor_name)}/${encodeURIComponent(record.donation)}`;
+            }
+            console.log(`Deleting record at: ${endpoint}`);
+            await axios.delete(endpoint);
+            // Refresh data after deletion
+            const response = await axios.get(currentView === 'membership' ? '/api/membership' : '/api/donations');
+            console.log('Updated records after deletion:', response.data);
+            if (Array.isArray(response.data)) {
+                setRecords(response.data);
+            } else {
+                setRecords([]);
+                setError('Unexpected response format after deletion.');
+            }
+        } catch (error) {
+            console.error('Error deleting record:', error);
+            setError('Failed to delete the record. Please try again.');
         }
     };
 
@@ -143,13 +218,13 @@ const TreasurerPage = () => {
             onClick={onClick}
             style={{
                 ...styles.tab,
-                ...(active ? styles.activeTab : {})
+                ...(active ? styles.activeTab : {}),
             }}
         >
             <span
                 style={{
                     ...styles.circle,
-                    ...(active ? styles.activeCircle : {})
+                    ...(active ? styles.activeCircle : {}),
                 }}
             ></span>
             {title}
@@ -157,50 +232,60 @@ const TreasurerPage = () => {
     );
 
     const renderTable = () => {
-        const records = currentView === 'membership' ? membershipRecords : donationRecords;
-        const columns = currentView === 'membership'
-            ? ['ID', 'Name', 'PaymentDate', 'PaymentMethod', 'PaymentAmount', 'PaymentStatus']
-            : ['ID', 'AmountDonated', 'Date', 'Source'];
-
+        const columns =
+            currentView === 'membership'
+                ? ['name', 'last_payment_date', 'payment_method', 'amount_paid', 'monthly_fee', 'status'] // Added 'monthly_fee'
+                : ['donor_name', 'donation', 'address', 'email', 'on_donor_list', 'acknowledged', 'notes'];
+    
         return (
             <div style={styles.table}>
                 <table className="table table-hover mb-0">
                     <thead style={styles.tableHeader}>
-                    <tr>
-                        {columns.map(col => <th key={col}>{col}</th>)}
-                        <th>Actions</th>
-                    </tr>
+                        <tr>
+                            {columns.map((col) => (
+                                <th key={col}>{col.replace(/_/g, ' ').toUpperCase()}</th>
+                            ))}
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    {records.map((record) => (
-                        <tr key={record.ID}>
-                            {columns.map(col => (
-                                <td key={col}>
-                                    {col === 'PaymentStatus' ? (
-                                        <span className={`badge ${record[col] ? 'bg-success' : 'bg-danger'}`}>
-                {record[col] ? 'Paid' : 'Unpaid'}
-            </span>
-                                    ) : (
-                                        record[col]
-                                    )}
+                        {records.length > 0 ? (
+                            records.map((record) => (
+                                <tr key={record.id}> {/* Use 'id' instead of 'index' */}
+                                    {columns.map((col) => (
+                                        <td key={col}>
+                                            {currentView === 'membership' && col === 'status' ? (
+                                                record[col] ? 'Active' : 'Inactive'
+                                            ) : col === 'last_payment_date' && record[col] ? (
+                                                new Date(record[col]).toISOString().split('T')[0]
+                                            ) : (
+                                                record[col]
+                                            )}
+                                        </td>
+                                    ))}
+                                    <td>
+                                        <button
+                                            className="btn btn-sm btn-primary me-2"
+                                            onClick={() => openForm(record)}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-danger"
+                                            onClick={() => deleteRecord(record)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={columns.length + 1} className="text-center">
+                                    No records found.
                                 </td>
-                            ))}
-                            <td>
-                                <button
-                                    className="btn btn-sm btn-primary me-2"
-                                    onClick={() => openForm(record)}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="btn btn-sm btn-danger"
-                                    onClick={() => deleteRecord(record.ID)}
-                                >
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -224,7 +309,7 @@ const TreasurerPage = () => {
                     className="btn btn-danger d-flex align-items-center gap-2"
                     style={{
                         borderRadius: '25px',
-                        padding: '8px 20px'
+                        padding: '8px 20px',
                     }}
                     onClick={handleLogout}
                 >
@@ -238,6 +323,12 @@ const TreasurerPage = () => {
             >
                 {currentView === 'membership' ? 'New Record' : 'New Donation'}
             </button>
+
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    {error}
+                </div>
+            )}
 
             {renderTable()}
 
@@ -262,18 +353,24 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
         initialData ||
         (currentView === 'membership'
             ? {
-                Name: '',
-                PaymentDate: '',
-                PaymentAmount: '',
-                PaymentMethod: '',
-                PaymentStatus: false
+                name: '',
+                last_payment_date: '',
+                payment_method: '',
+                amount_paid: '',
+                monthly_fee: '',
+                status: false,
             }
             : {
-                AmountDonated: '',
-                Date: '',
-                Source: ''
+                donor_name: '',
+                donation: '',
+                address: '',
+                email: '',
+                on_donor_list: false,
+                acknowledged: false,
+                notes: '',
             })
     );
+    const [formErrors, setFormErrors] = useState({});
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -283,74 +380,81 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formState);
-    };
-
-    const renderInput = (key) => {
-        if (key === 'PaymentStatus') {
-            return (
-                <div className="form-check">
-                    <input
-                        type="checkbox"
-                        className="form-check-input"
-                        name={key}
-                        checked={formState[key]}
-                        onChange={handleChange}
-                        id="paymentStatus"
-                    />
-                    <label className="form-check-label" htmlFor="paymentStatus">
-                        Paid
-                    </label>
-                </div>
-            );
+        // Basic frontend validation
+        let errors = {};
+        if (currentView === 'membership') {
+            if (!formState.name) errors.name = 'Name is required';
+            // Add other required field validations if necessary
+        } else {
+            if (!formState.donor_name) errors.donor_name = 'Donor name is required';
+            if (!formState.donation) errors.donation = 'Donation amount is required';
+            // Add other required field validations if necessary
         }
-
-        if (key === 'PaymentDate' || key === 'Date') {
-            return (
-                <input
-                    type="date"
-                    className="form-control"
-                    name={key}
-                    value={formState[key]}
-                    onChange={handleChange}
-                />
-            );
+    
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            return;
         }
-
-        return (
-            <input
-                type="text"
-                className="form-control"
-                name={key}
-                value={formState[key]}
-                onChange={handleChange}
-            />
-        );
+    
+        // Set email to null if empty
+        const modifiedFormState = { ...formState };
+        if (modifiedFormState.email === '') {
+            modifiedFormState.email = null;
+        }
+    
+        setFormErrors({});
+        onSubmit(modifiedFormState);
     };
 
     return (
-        <div>
-            <h3 className="mb-4">
-                {initialData ? 'Edit' : 'Add New'}{' '}
-                {currentView === 'membership' ? 'Payment Record' : 'Donation Record'}
-            </h3>
-            <form onSubmit={handleSubmit}>
-                {Object.keys(formState).filter(key => key !== 'ID').map((key) => (
-                    <div className="mb-3" key={key}>
-                        <label className="form-label">{key}:</label>
-                        {renderInput(key)}
-                    </div>
-                ))}
-                <div className="d-flex gap-2 justify-content-end">
-                    <button type="submit" className="btn btn-primary">
-                        Submit
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>
-                        Cancel
-                    </button>
+        <form onSubmit={handleSubmit}>
+            {Object.keys(formState).map((key) => (
+                <div className="mb-3" key={key}>
+                    <label className="form-label">{key.replace(/_/g, ' ').toUpperCase()}</label>
+                    {typeof formState[key] === 'boolean' ? (
+                        <div className="form-check">
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                name={key}
+                                checked={formState[key]}
+                                onChange={handleChange}
+                                id={key}
+                            />
+                            <label className="form-check-label" htmlFor={key}>
+                                {formState[key] ? 'Yes' : 'No'}
+                            </label>
+                        </div>
+                    ) : (
+                        <input
+                            type={key.includes('date') ? 'date' : 'text'}
+                            className={`form-control ${formErrors[key] ? 'is-invalid' : ''}`}
+                            name={key}
+                            value={formState[key]}
+                            onChange={handleChange}
+                            required={
+                                currentView === 'membership'
+                                    ? key === 'name'
+                                    : key === 'donor_name' || key === 'donation'
+                            }
+                        />
+                    )}
+                    {formErrors[key] && (
+                        <div className="invalid-feedback">
+                            {formErrors[key]}
+                        </div>
+                    )}
                 </div>
-            </form>
-        </div>
+            ))}
+            <div className="d-flex justify-content-end">
+                <button type="submit" className="btn btn-primary me-2">
+                    Save
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>
+                    Cancel
+                </button>
+            </div>
+        </form>
     );
 };
 

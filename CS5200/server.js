@@ -7,8 +7,15 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// CORS Configuration
+const corsOptions = {
+  origin: 'http://localhost:3001', // Frontend origin
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Allow cookies if needed
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
 // Import Routes
