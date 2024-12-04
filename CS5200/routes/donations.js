@@ -63,20 +63,20 @@ router.put(
       .notEmpty().withMessage('Donation amount is required')
       .isDecimal().withMessage('Donation must be a decimal number'),
     body('address')
-      .optional()
+      .optional({ nullable: true })
       .isLength({ max: 200 }).withMessage('Address must be at most 200 characters'),
     body('email')
-      .optional()
+      .optional({ nullable: true })
       .isEmail().withMessage('Valid email is required')
       .isLength({ max: 100 }).withMessage('Email must be at most 100 characters'),
     body('on_donor_list')
-      .optional()
+      .optional({ nullable: true })
       .isBoolean().withMessage('On donor list must be a boolean value'),
     body('acknowledged')
-      .optional()
+      .optional({ nullable: true })
       .isBoolean().withMessage('Acknowledged must be a boolean value'),
     body('notes')
-      .optional()
+      .optional({ nullable: true })
       .isLength({ max: 65535 }).withMessage('Notes must be at most 65535 characters'),
   ],
   donationsController.updateDonation

@@ -396,10 +396,17 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
             return;
         }
     
-        // Set email to null if empty
+        // Prepare the form data for submission
         const modifiedFormState = { ...formState };
+    
+        // Ensure email is set to null if empty
         if (modifiedFormState.email === '') {
             modifiedFormState.email = null;
+        }
+    
+        // Convert status field to boolean
+        if (typeof modifiedFormState.status !== 'boolean') {
+            modifiedFormState.status = Boolean(modifiedFormState.status);
         }
     
         setFormErrors({});
@@ -411,34 +418,44 @@ const RecordForm = ({ initialData, onSubmit, onClose, currentView }) => {
             {Object.keys(formState).map((key) => (
                 <div className="mb-3" key={key}>
                     <label className="form-label">{key.replace(/_/g, ' ').toUpperCase()}</label>
-                    {typeof formState[key] === 'boolean' ? (
-                        <div className="form-check">
-                            <input
-                                type="checkbox"
-                                className="form-check-input"
-                                name={key}
-                                checked={formState[key]}
-                                onChange={handleChange}
-                                id={key}
-                            />
-                            <label className="form-check-label" htmlFor={key}>
-                                {formState[key] ? 'Yes' : 'No'}
-                            </label>
-                        </div>
-                    ) : (
-                        <input
-                            type={key.includes('date') ? 'date' : 'text'}
-                            className={`form-control ${formErrors[key] ? 'is-invalid' : ''}`}
-                            name={key}
-                            value={formState[key]}
-                            onChange={handleChange}
-                            required={
-                                currentView === 'membership'
-                                    ? key === 'name'
-                                    : key === 'donor_name' || key === 'donation'
-                            }
-                        />
-                    )}
+                    {key === 'status' ? ( // Ensure status is always rendered as a checkbox
+    <div className="form-check">
+        <input
+            type="checkbox"
+            className="form-check-input"
+            name={key}
+            checked={formState[key]}
+            onChange={(e) =>
+                setFormState((prev) => ({
+                    ...prev,
+                    [key]: e.target.checked,
+                }))
+            }
+            id={key}
+        />
+        <label className="form-check-label" htmlFor={key}>
+            {formState[key] ? 'Yes' : 'No'}
+        </label>
+    </div>
+) : (
+    <input
+        type={key.includes('date') ? 'date' : 'text'}
+        className={`form-control ${formErrors[key] ? 'is-invalid' : ''}`}
+        name={key}
+        value={formState[key] || ''}
+        onChange={(e) =>
+            setFormState((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+            }))
+        }
+        required={
+            currentView === 'membership'
+                ? key === 'name'
+                : key === 'donor_name' || key === 'donation'
+        }
+    />
+)}
                     {formErrors[key] && (
                         <div className="invalid-feedback">
                             {formErrors[key]}

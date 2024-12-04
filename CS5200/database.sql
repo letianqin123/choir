@@ -28,7 +28,7 @@ CREATE TABLE `attendance` (
   `attendance` tinyint(1) DEFAULT NULL,
   `absent_reason` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`name`,`check_in_date`),
-  CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`name`) REFERENCES `members` (`name`)
+  CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`name`) REFERENCES `members` (`name`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -148,7 +148,7 @@ CREATE TABLE `members` (
 
 LOCK TABLES `members` WRITE;
 /*!40000 ALTER TABLE `members` DISABLE KEYS */;
-INSERT INTO `members` VALUES ('AB',NULL,'ab@example.com',NULL,'Tenor',1,23.53),('AS',NULL,'as@example.com',NULL,'Tenor',1,64.71),('CC',NULL,'cc@example.com',NULL,'Tenor',1,70.59),('IM',NULL,'im@example.com',NULL,'Tenor',1,41.18),('JB',NULL,'jb@example.com',NULL,'Tenor',1,29.41),('JC',NULL,'jc@example.com',NULL,'Tenor',1,41.18),('JF',NULL,'jf@example.com',NULL,'Tenor',1,35.29),('LC',NULL,'lc@example.com',NULL,'Tenor',1,5.88),('MB',NULL,'mb@example.com',NULL,'Tenor',1,52.94),('MG',NULL,'mg@example.com',NULL,'Tenor',1,58.82),('MN',NULL,'mn@example.com',NULL,'Tenor',1,70.59),('MP',NULL,'mp@example.com',NULL,'Tenor',1,64.71),('MS',NULL,'ms@example.com',NULL,'Tenor',1,76.47),('SB',NULL,'sb@example.com',NULL,'Tenor',1,76.47),('SF',NULL,'sf@example.com',NULL,'Tenor',1,76.47),('SP',NULL,'sp@example.com',NULL,'Tenor',1,70.59);
+INSERT INTO `members` VALUES ('AB',NULL,'ab@example.com',NULL,'Alto',1,23.53),('AS',NULL,'as@example.com',NULL,'Tenor',1,64.71),('CC',NULL,'cc@example.com',NULL,'Bass',1,70.59),('IM',NULL,'im@example.com',NULL,'Soprano',1,41.18),('JB',NULL,'jb@example.com',NULL,'Alto',1,29.41),('JC',NULL,'jc@example.com',NULL,'Tenor',1,41.18),('JF',NULL,'jf@example.com',NULL,'Bass',1,35.29),('LC',NULL,'lc@example.com',NULL,'Soprano',1,5.88),('MB',NULL,'mb@example.com',NULL,'Alto',1,52.94),('MG',NULL,'mg@example.com',NULL,'Tenor',1,58.82),('MN',NULL,'mn@example.com',NULL,'Bass',1,70.59),('MP',NULL,'mp@example.com',NULL,'Soprano',1,64.71),('MS',NULL,'ms@example.com',NULL,'Alto',1,76.47),('SB',NULL,'sb@example.com',NULL,'Tenor',1,76.47),('SF',NULL,'sf@example.com',NULL,'Bass',1,76.47),('SP',NULL,'sp@example.com',NULL,'Soprano',1,70.59);
 /*!40000 ALTER TABLE `members` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -167,7 +167,7 @@ CREATE TABLE `membership` (
   `monthly_fee` decimal(10,2) DEFAULT '50.00',
   `status` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`name`),
-  CONSTRAINT `membership_ibfk_1` FOREIGN KEY (`name`) REFERENCES `members` (`name`)
+  CONSTRAINT `membership_ibfk_1` FOREIGN KEY (`name`) REFERENCES `members` (`name`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -179,6 +179,105 @@ LOCK TABLES `membership` WRITE;
 /*!40000 ALTER TABLE `membership` DISABLE KEYS */;
 /*!40000 ALTER TABLE `membership` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping events for database 'choir_db'
+--
+/*!50106 SET @save_time_zone= @@TIME_ZONE */ ;
+/*!50106 DROP EVENT IF EXISTS `update_membership_status_event` */;
+DELIMITER ;;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;;
+/*!50003 SET character_set_client  = gbk */ ;;
+/*!50003 SET character_set_results = gbk */ ;;
+/*!50003 SET collation_connection  = gbk_chinese_ci */ ;;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;;
+/*!50003 SET @saved_time_zone      = @@time_zone */ ;;
+/*!50003 SET time_zone             = 'SYSTEM' */ ;;
+/*!50106 CREATE*/ /*!50117 DEFINER=`root`@`localhost`*/ /*!50106 EVENT `update_membership_status_event` ON SCHEDULE EVERY 1 DAY STARTS '2024-12-01 05:59:37' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+    CALL update_membership_status();
+END */ ;;
+/*!50003 SET time_zone             = @saved_time_zone */ ;;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;;
+/*!50003 SET character_set_results = @saved_cs_results */ ;;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;;
+DELIMITER ;
+/*!50106 SET TIME_ZONE= @save_time_zone */ ;
+
+--
+-- Dumping routines for database 'choir_db'
+--
+/*!50003 DROP PROCEDURE IF EXISTS `update_membership_status` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = gbk */ ;
+/*!50003 SET character_set_results = gbk */ ;
+/*!50003 SET collation_connection  = gbk_chinese_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_membership_status`()
+BEGIN
+    UPDATE Membership
+    SET status = CASE
+        WHEN last_payment_date IS NOT NULL
+             AND amount_paid >= ((TIMESTAMPDIFF(MONTH, last_payment_date, CURDATE()) + 1) * monthly_fee)
+            THEN TRUE
+        ELSE FALSE
+    END;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_member_attendance_rate` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = gbk */ ;
+/*!50003 SET character_set_results = gbk */ ;
+/*!50003 SET collation_connection  = gbk_chinese_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_member_attendance_rate`(IN member_name VARCHAR(10))
+BEGIN
+    DECLARE total_events INT DEFAULT 0;
+    DECLARE attended_events INT DEFAULT 0;
+    DECLARE attendance_rate DECIMAL(5,2) DEFAULT 0;
+
+    -- Calculate total number of attendance records for the member
+    SELECT COUNT(*) INTO total_events
+    FROM Attendance
+    WHERE name = member_name;
+
+    -- Calculate number of times the member was present
+    SELECT COUNT(*) INTO attended_events
+    FROM Attendance
+    WHERE name = member_name AND attendance = TRUE;
+
+    -- Calculate attendance rate
+    IF total_events > 0 THEN
+        SET attendance_rate = (attended_events / total_events) * 100;
+    ELSE
+        SET attendance_rate = 0;
+    END IF;
+
+    -- Update the attendance_rate in the Members table
+    UPDATE Members
+    SET attendance_rate = attendance_rate
+    WHERE name = member_name;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -189,4 +288,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-12-02 15:54:30
+-- Dump completed on 2024-12-03 16:46:45

@@ -232,7 +232,23 @@ const MemberForm = ({ initialData, onSubmit, onClose }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formState);
+        
+        // Create a copy of the form state
+        const formattedState = { ...formState };
+        
+        // Convert empty strings to null for specific fields
+        if (!formattedState.email) {
+            formattedState.email = null;
+        }
+        if (!formattedState.address) {
+            formattedState.address = null;
+        }
+        if (!formattedState.phone) {
+            formattedState.phone = null;
+        }
+    
+        // Pass the formatted state to the onSubmit handler
+        onSubmit(formattedState);
     };
 
     return (
