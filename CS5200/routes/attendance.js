@@ -16,10 +16,14 @@ router.post(
       .notEmpty().withMessage('Check-in date is required')
       .isISO8601().withMessage('Check-in date must be a valid date'),
     body('attendance')
-      .optional()
-      .isBoolean().withMessage('Attendance must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'boolean') return true;
+        return false;
+      }).withMessage('Attendance must be a boolean value'),
     body('absent_reason')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 255 }).withMessage('Absent reason must be at most 255 characters'),
   ],
   attendanceController.createAttendanceRecord
@@ -42,10 +46,14 @@ router.put(
       .notEmpty().withMessage('Check-in date is required')
       .isISO8601().withMessage('Check-in date must be a valid date'),
     body('attendance')
-      .optional()
-      .isBoolean().withMessage('Attendance must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'boolean') return true;
+        return false;
+      }).withMessage('Attendance must be a boolean value'),
     body('absent_reason')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 255 }).withMessage('Absent reason must be at most 255 characters'),
   ],
   attendanceController.updateAttendanceRecord
@@ -82,10 +90,14 @@ router.post(
       .notEmpty().withMessage('Name is required for each record')
       .isLength({ max: 10 }).withMessage('Name must be at most 10 characters'),
     body('attendance_records.*.attendance')
-      .optional()
-      .isBoolean().withMessage('Attendance must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'boolean') return true;
+        return false;
+      }).withMessage('Attendance must be a boolean value'),
     body('attendance_records.*.absent_reason')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 255 }).withMessage('Absent reason must be at most 255 characters'),
   ],
   attendanceController.addAttendanceByVoicePartAndDate
