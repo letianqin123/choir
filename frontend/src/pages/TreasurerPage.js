@@ -143,12 +143,23 @@ const handleFormSubmit = async (newRecord) => {
             method = 'post';
         }
 
-        console.log(`Sending ${method.toUpperCase()} request to: ${endpoint}`, newRecord);
+        // Prepare the data for submission
+        const modifiedRecord = { ...newRecord };
+
+        // Only include the status field for membership
+        if (currentView !== 'membership') {
+            delete modifiedRecord.status;
+        } else {
+            // Convert status to boolean for membership
+            modifiedRecord.status = Boolean(modifiedRecord.status);
+        }
+
+        console.log(`Sending ${method.toUpperCase()} request to: ${endpoint}`, modifiedRecord);
 
         const response = await axios({
             method: method,
             url: endpoint,
-            data: newRecord,
+            data: modifiedRecord,
         });
 
         // Refresh data after submission

@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 9.1.0, for Win64 (x86_64)
 --
--- Host: localhost    Database: Users
+-- Host: localhost    Database: users
 -- ------------------------------------------------------
 -- Server version	9.1.0
 
@@ -14,6 +14,14 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Current Database: `users`
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `users` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `users`;
 
 --
 -- Table structure for table `users`
@@ -35,9 +43,17 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES ('1','111'),('2','222');
+INSERT INTO `users` VALUES ('admin','$2b$10$zB9V6dUx4OleHjnfK1vp4uReNniZFIHPMcHShhSPoHxK7XuthPlFu'),('secretary','$2b$10$2JETSiEpxHsmhttkZ4bOtemRiATE.srKlj8NhCj6cSl7dUnGk5Tb.'),('treasurer','$2b$10$YWfB9nQfnIWccytB1ZoGp.tMnoTbjqmni0VHAOaYTniTu1pJ6dsNi');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping events for database 'users'
+--
+
+--
+-- Dumping routines for database 'users'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -48,4 +64,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-12-02 15:49:37
+-- Dump completed on 2024-12-03 21:26:11
