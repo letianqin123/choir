@@ -16,20 +16,31 @@ router.post(
       .notEmpty().withMessage('Donation amount is required')
       .isDecimal().withMessage('Donation must be a decimal number'),
     body('address')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 200 }).withMessage('Address must be at most 200 characters'),
     body('email')
-      .optional()
-      .isEmail().withMessage('Valid email is required')
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true; // Allow null or undefined
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); // Validate email format
+      }).withMessage('Valid email is required')
       .isLength({ max: 100 }).withMessage('Email must be at most 100 characters'),
     body('on_donor_list')
-      .optional()
-      .isBoolean().withMessage('On donor list must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true; // Allow null or undefined
+        if (typeof value === 'boolean') return true; // Allow boolean values
+        return false; // Reject invalid types
+      }).withMessage('On donor list must be a boolean value'),
     body('acknowledged')
-      .optional()
-      .isBoolean().withMessage('Acknowledged must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true; // Allow null or undefined
+        if (typeof value === 'boolean') return true; // Allow boolean values
+        return false; // Reject invalid types
+      }).withMessage('Acknowledged must be a boolean value'),
     body('notes')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 65535 }).withMessage('Notes must be at most 65535 characters'),
   ],
   donationsController.createDonation

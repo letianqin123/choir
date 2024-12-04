@@ -13,7 +13,11 @@ router.post(
       .notEmpty().withMessage('Name is required')
       .isLength({ max: 10 }).withMessage('Name must be at most 10 characters'),
     body('email')
-      .isEmail().withMessage('Valid email is required')
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true; // Allow null or undefined
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); // Validate email format
+      }).withMessage('Valid email is required')
       .isLength({ max: 100 }).withMessage('Email must be at most 100 characters'),
     body('voice_part')
       .notEmpty().withMessage('Voice part is required')
@@ -33,8 +37,11 @@ router.put(
   '/:name',
   [
     body('email')
-      .optional()
-      .isEmail().withMessage('Valid email is required')
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true; // Allow null or undefined
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); // Validate email format
+      }).withMessage('Valid email is required')
       .isLength({ max: 100 }).withMessage('Email must be at most 100 characters'),
     body('voice_part')
       .optional()

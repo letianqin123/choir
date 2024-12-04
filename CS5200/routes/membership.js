@@ -13,20 +13,24 @@ router.post(
       .notEmpty().withMessage('Name is required')
       .isLength({ max: 10 }).withMessage('Name must be at most 10 characters'),
     body('last_payment_date')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isISO8601().withMessage('Last payment date must be a valid date'),
     body('amount_paid')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isDecimal().withMessage('Amount paid must be a decimal number'),
     body('payment_method')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 50 }).withMessage('Payment method must be at most 50 characters'),
     body('monthly_fee')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isDecimal().withMessage('Monthly fee must be a decimal number'),
     body('status')
-      .optional()
-      .isBoolean().withMessage('Status must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'boolean') return true;
+        return false;
+      }).withMessage('Status must be a boolean value'),
   ],
   membershipController.createMembershipRecord
 );
@@ -45,27 +49,30 @@ router.put(
       .notEmpty().withMessage('Name is required')
       .isLength({ max: 10 }).withMessage('Name must be at most 10 characters'),
     body('last_payment_date')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isISO8601().withMessage('Last payment date must be a valid date'),
     body('amount_paid')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isDecimal().withMessage('Amount paid must be a decimal number'),
     body('payment_method')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isLength({ max: 50 }).withMessage('Payment method must be at most 50 characters'),
     body('monthly_fee')
-      .optional()
+      .optional({ nullable: true }) // Allow null or undefined
       .isDecimal().withMessage('Monthly fee must be a decimal number'),
     body('status')
-      .optional()
-      .isBoolean().withMessage('Status must be a boolean value'),
+      .optional({ nullable: true }) // Allow null or undefined
+      .custom((value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'boolean') return true;
+        return false;
+      }).withMessage('Status must be a boolean value'),
   ],
   membershipController.updateMembershipRecord
 );
 
 // Delete a membership record
 router.delete('/:name', membershipController.deleteMembershipRecord);
-
 
 // Get all expired membership records (status = 0)
 router.get('/expired', membershipController.getExpiredMemberships);
