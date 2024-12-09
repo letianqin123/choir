@@ -135,7 +135,7 @@ mysql -u root -p choir_db < CS5200/database.sql
 ```
 3.	Populate the Users database with the data from the SQL dump in the CS5200-Users folder:
 ```bash
-mysql -u root -p Users < CS5200-Users/database.sql
+mysql -u root -p Users < CS5200_Users/db/database.sql
 ```
 
 ## Running the Full Application
