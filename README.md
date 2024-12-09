@@ -138,7 +138,7 @@ mysql -u root -p choir_db < CS5200/database.sql
 mysql -u root -p Users < CS5200-Users/database.sql
 ```
 
-### Running the Full Application
+## Running the Full Application
 1.	Start the frontend server:
 ```bash
 cd frontend
